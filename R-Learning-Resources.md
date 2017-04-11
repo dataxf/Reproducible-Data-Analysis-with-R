@@ -1,5 +1,6 @@
 # Getting started with R
-## Beginner level resources
+
+### Beginner level resources
 
 *For everyone*
 
@@ -25,6 +26,12 @@ by Roger D. Peng
 
 * [R语言](https://bookdown.org/yihui/r-ninja/)
 
-## Programming with R
+### ggplot2 Tips
+
+* [ggplot2 code snippets](http://www.computerworld.com/article/2936729/data-analytics/free-download-save-r-data-visualization-time-with-these-ggplot2-code-snippets.html?upd=1491860196941)  
+
+
+
+### Programming with R
 
 * [Efficient R programming] (https://csgillespie.github.io/efficientR/)
