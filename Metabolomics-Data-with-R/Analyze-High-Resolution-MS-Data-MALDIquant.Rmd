@@ -1,0 +1,158 @@
+---
+title: "Analyze High-Resolution-Mass-Spectrum Data using R Package MALDIquant"
+output: html_document
+---
+
+install.packages(c("MALDIquant", "MALDIquantForeign"))
+
+
+MALDIquant Package Demo
+http://strimmerlab.org/software/maldiquant/  
+https://link.springer.com/chapter/10.1007/978-3-319-45809-0_6
+
+Applicaition on FT-ICR data
+
+## Load FT-ICR data and create MassSpectrum object
+
+```{r}
+# Read in FT-ICR data with two columns: m/z and intensity, PP12 is unlabelled control, PP13 is 13C fed sample
+PP12 <- read.csv("pos_polar_C12_4uL_000001.csv", header=T)
+PP13 <- read.csv("pos_polar_C13_4uL_000001.csv", header=T)
+head(PP13)
+
+# Create MassSpectrum object
+library("MALDIquant")
+s12 <- createMassSpectrum(mass=PP12$m.z,intensity=PP12$intensity,metaData=list(name="Spectrum Positive Polar"))
+s13 <- createMassSpectrum(mass=PP13$m.z,intensity=PP13$intensity,metaData=list(name="Spectrum Positive Polar"))
+
+## select a range
+plot(s12)
+plot(s13)
+```
+
+## Trim MassSpectrum object separately
+```{r}
+#  trims an AbstractMassObject object. That is useful if some mass ranges should be excluded from further analysis.
+## remove all mass lower 3000 and higher 8000
+s12 <- trim(s12, range=c(100, 1000))
+plot(s12)
+s13 <- trim(s13, range=c(100, 1000))
+plot(s13)
+```
+
+## Make a MassSpectrum list containing multiple MassSpectrum objects
+
+```{r}
+## create two MassSpectrum objects and add them to a list
+slist <- list(s12, s13)
+# ensure that all spectra cover the same m/z range.
+# choose largest overlapping mass range for all spectra 
+trim(slist)
+plot(slist[[1]], sub="")
+```
+
+##  Transformation and Smoothing
+We perform variance stabilization by applying the square root transformation to the raw data, and subsequently use a 41 point Savitzky–Golay-Filter [53] to smooth the spectra.
+
+spectra <- smoothIntensity(spectra, method= "SavitzkyGolay",halfWindowSize=20) (smoothing is not good)
+
+```{r}
+spectra <- transformIntensity(slist, method="sqrt")
+plot(spectra[[2]])
+```
+
+
+```{r}
+plot(spectra[[1]], xlim=c(170, 200))
+plot(spectra[[2]], xlim=c(170, 200))
+```
+
+## Baseline Correction
+```{r}
+baseline <- estimateBaseline(spectra[[1]], method="SNIP",iterations=150)
+plot(spectra[[1]], sub="", main="Before baseline correction")
+lines(baseline, col="red", lwd=2)
+```
+```{r}
+# Substrate baseline
+spectra <- removeBaseline(spectra, method="SNIP",
+iterations=150)
+plot(spectra[[1]], sub="", main="After baseline correction")
+```
+
+## Peak Detection and Computation of Intensity Matrix
+
+Before we perform the peak detection algorithm we estimate the noise of the spectra to get a feeling for
+the signal-to-noise ratio.
+
+```{r}
+spectratrim <- trim(spectra, range=c(170, 200))
+plot(spectratrim[[1]])
+noise <- estimateNoise(spectratrim[[2]])
+plot(spectratrim[[2]], main="red s/n=1, blue s/n=2")
+lines(noise, col="red")
+lines(noise[, 1], 2*noise[, 2], col="blue")
+```
+
+Peak Detection
+```{r}
+# halfWindowSize change the number of peaks detected
+peaks <- detectPeaks(spectratrim, halfWindowSize=2, SNR=10)
+par(mfrow = c(2, 1))
+plot(spectratrim[[1]])
+points(peaks[[1]], col="red", pch=4, lwd = 2)
+plot(spectratrim[[2]])
+points(peaks[[2]], col="red", pch=4, lwd = 2)
+```
+
+Plot one peak to check it's the same in two spectra
+```{r}
+par(mfrow = c(2, 1))
+plot(spectratrim[[1]],xlim=c(175.116,175.120),ylim=c(0,7000))
+points(peaks[[1]], col="red", pch=4, lwd = 2)
+plot(spectratrim[[2]],xlim=c(175.116,175.120),ylim=c(0,7000))
+points(peaks[[2]], col="red", pch=4, lwd = 2)
+```
+
+Notice that the peak positions are not exactly the same.
+
+Make intensity matrix
+```{r}
+featureMatrix <- intensityMatrix(peaks, spectratrim)
+featureMatrix
+```
+
+Notice that the peak positions (mass) are very similar but not numerically identical. There are multiple similar m/z.
+Binning is required to achieve identity:
+
+```{r}
+# The binning is needed to make similar peak mass values identical.
+peaks <- binPeaks(peaks, tolerance=0.002)
+par(mfrow = c(2, 1))
+plot(spectratrim[[1]])
+points(peaks[[1]], col="red", pch=4, lwd = 2)
+plot(spectratrim[[2]])
+points(peaks[[2]], col="red", pch=4, lwd = 2)
+```
+```{r}
+par(mfrow = c(2, 1))
+plot(spectratrim[[1]],xlim=c(175.116,175.120),ylim=c(0,7000))
+points(peaks[[1]], col="red", pch=4, lwd = 2)
+plot(spectratrim[[2]],xlim=c(175.116,175.120),ylim=c(0,7000))
+points(peaks[[2]], col="red", pch=4, lwd = 2)
+```
+
+```{r}
+featureMatrix <- intensityMatrix(peaks, spectratrim)
+featureMatrix
+```
+
+
+In peak detection we choose a very low signal-to-noise ratio to keep as many features as possible. Using the information about class labels we can now filter out false positive peaks, by removing peaks that appear in less than 50 % of all spectra in each group:
+
+
+
+
+
+
+
