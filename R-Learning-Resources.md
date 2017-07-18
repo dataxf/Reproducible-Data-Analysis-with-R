@@ -26,6 +26,12 @@ by Roger D. Peng
 
 * [R语言](https://bookdown.org/yihui/r-ninja/)
 
+*For gamer
+* [R Programming with Minecraft](https://ropenscilabs.github.io/miner_book/index.html)
+
+### 
+* [Jupyter And R Markdown: Notebooks With R](https://www.datacamp.com/community/blog/jupyter-notebook-r#gs.dWw7EvI)
+
 ### ggplot2 Tips
 
 * [ggplot2 code snippets](http://www.computerworld.com/article/2936729/data-analytics/free-download-save-r-data-visualization-time-with-these-ggplot2-code-snippets.html?upd=1491860196941)  
